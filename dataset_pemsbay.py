@@ -8,29 +8,32 @@ from utils import get_randmask, get_block_mask
 
 import os
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
+# explain the above line particularly hdg5 file locking issues on network file systems like NFS. and it is used in 
+# metrla and pemsbay dataset loading to avoid potential read/write conflicts. This setting can help prevent errors when multiple processes access the same HDF5 file.
 
 
-def sample_mask(shape, p=0.0015, p_noise=0.05, max_seq=1, min_seq=1, rng=None):
+def sample_mask(shape, p=0.0015, p_noise=0.05, max_seq=1, min_seq=1, rng=None): 
     if rng is None:
         rand = np.random.random
         randint = np.random.randint
     else:
         rand = rng.random
         randint = rng.integers
-    mask = rand(shape) < p
-    for col in range(mask.shape[1]):
-        idxs = np.flatnonzero(mask[:, col])
+    mask = rand(shape) < p 
+    for col in range(mask.shape[1]): 
+        idxs = np.flatnonzero(mask[:, col]) 
         if not len(idxs):
             continue
         fault_len = min_seq
         if max_seq > min_seq:
-            fault_len = fault_len + int(randint(max_seq - min_seq))
-        idxs_ext = np.concatenate([np.arange(i, i + fault_len) for i in idxs])
+            fault_len = fault_len + int(randint(max_seq - min_seq)) 
+        idxs_ext = np.concatenate([np.arange(i, i + fault_len) for i in idxs]) #
         idxs = np.unique(idxs_ext)
         idxs = np.clip(idxs, 0, shape[0] - 1)
         mask[idxs, col] = True
     mask = mask | (rand(mask.shape) < p_noise)
-    return mask.astype('uint8')
+    return mask.astype('uint8') 
+   
 
 
 class PemsBAY_Dataset(Dataset):
@@ -49,13 +52,13 @@ class PemsBAY_Dataset(Dataset):
         self.cut_length = []
 
         df = pd.read_hdf("./data/pems_bay/pems_bay.h5")
-        ob_mask = (df.values != 0.).astype('uint8')
+        ob_mask = (df.values != 0.).astype('uint8') # observed mask where data is not zero
         SEED = 9101112
         self.rng = np.random.default_rng(SEED)
         if missing_pattern == 'block':
             eval_mask = sample_mask(shape=(52116, 325), p=0.0015, p_noise=0.05, min_seq=12, max_seq=12 * 4, rng=self.rng)
         elif missing_pattern == 'point':
-            eval_mask = sample_mask(shape=(52116, 325), p=0., p_noise=0.25, max_seq=12, min_seq=12 * 4, rng=self.rng)
+            eval_mask = sample_mask(shape=(52116, 325), p=0., p_noise=0.25, max_seq=12, min_seq= 12 * 4, rng=self.rng)
         gt_mask = (1-(eval_mask | (1-ob_mask))).astype('uint8')
 
         val_start = int((1 - val_len - test_len) * len(df))

@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torchcde
 from utils import get_randmask, get_hist_mask
-
+                   
 
 class AQI36_Dataset(Dataset):
     def __init__(self, eval_length=36, target_dim=36, mode="train", val_len=0.1, is_interpolate=False,
@@ -50,14 +50,14 @@ class AQI36_Dataset(Dataset):
             "./data/pm25/SampleData/pm25_missing.txt",
             index_col="datetime",
             parse_dates=True,
-        )
+        ) 
 
         for i in range(len(month_list)):
-            current_df = df[df.index.month == month_list[i]]
-            current_df_gt = df_gt[df_gt.index.month == month_list[i]]
+            current_df = df[df.index.month == month_list[i]] # get rows where month in in the month list
+            current_df_gt = df_gt[df_gt.index.month == month_list[i]]  
             if mode == 'train' and month_list[i] in [2, 5, 8, 11]:
                 cut_len = int(val_len * len(current_df))
-                current_df = current_df[:-cut_len]
+                current_df = current_df[:-cut_len] 
                 current_df_gt = current_df_gt[:-cut_len]
             if mode == 'valid':
                 cut_len = int(val_len * len(current_df))
@@ -72,7 +72,7 @@ class AQI36_Dataset(Dataset):
                 self.valid_for_histmask += np.array(
                     [flag_for_histmask[i]] * current_length
                 ).tolist()
-
+              
             # mask values for observed indices are 1
             c_mask = 1 - current_df.isnull().values
             c_gt_mask = 1 - current_df_gt.isnull().values

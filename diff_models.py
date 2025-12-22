@@ -26,6 +26,8 @@ class Guide_diff(nn.Module):
             self.adj = get_adj_AQI36()
         elif config["adj_file"] == 'metr-la':
             self.adj = get_similarity_metrla(thr=0.1)
+        elif config["adj_file"] in ('pems-08', 'pems08'):
+            self.adj = get_similarity_pems08(thr=0.1)
         elif config["adj_file"] == 'pems-bay':
             self.adj = get_similarity_pemsbay(thr=0.1)
         self.device = config["device"]

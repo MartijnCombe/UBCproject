@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 import scipy.sparse as sp
+import os
 
 from sklearn.metrics.pairwise import haversine_distances
 
@@ -75,6 +76,76 @@ def get_similarity_metrla(thr=0.1, force_symmetric=False, sparse=False):
 
 def get_similarity_pemsbay(thr=0.1, force_symmetric=False, sparse=False):
     dist = np.load('./data/pems_bay/pems_bay_dist.npy')
+    finite_dist = dist.reshape(-1)
+    finite_dist = finite_dist[~np.isinf(finite_dist)]
+    sigma = finite_dist.std()
+    adj = np.exp(-np.square(dist / sigma))
+    adj[adj < thr] = 0.
+    if force_symmetric:
+        adj = np.maximum.reduce([adj, adj.T])
+    if sparse:
+        import scipy.sparse as sps
+        adj = sps.coo_matrix(adj)
+    return adj
+
+
+def get_similarity_pems08(thr=0.1, force_symmetric=False, sparse=False, save_dist=True):
+    """Compute similarity adjacency for PEMS08 dataset.
+    - If './data/pems08/pems08_dist.npy' exists, load it.
+    - Otherwise compute all-pairs shortest path distances from the edge list in
+      './data/pems08/PEMS08.csv' (columns: from,to,cost) and save the distance matrix.
+
+    This version ensures the resulting distance matrix matches the node count found in
+    './data/pems08/PEMS08.npz' (if available) to avoid size mismatches with the data.
+    """
+    dist_path = './data/pems08/pems08_dist.npy'
+    # determine desired node count from data (if possible)
+    try:
+        data_arr = np.load('./data/pems08/PEMS08.npz')
+        data_N = int(data_arr['data'].shape[1])
+    except Exception:
+        data_N = None
+
+    need_compute = True
+    if os.path.exists(dist_path):
+        dist = np.load(dist_path)
+        if data_N is None or dist.shape[0] == data_N:
+            need_compute = False
+        else:
+            # existing dist has wrong size -> recompute and overwrite
+            need_compute = True
+
+    if need_compute:
+        # read edge list and construct graph
+        df = pd.read_csv('./data/pems08/PEMS08.csv')
+        if not {'from', 'to', 'cost'}.issubset(df.columns):
+            raise ValueError("PEMS08.csv must contain columns 'from','to','cost'")
+        nodes = np.unique(np.concatenate([df['from'].values, df['to'].values]))
+        max_node = int(nodes.max())
+        if data_N is None:
+            N = max_node
+        else:
+            N = max(max_node, data_N)  # ensure we cover all nodes from data and edges
+
+        # initialize adjacency with infinities
+        mat = np.full((N, N), np.inf, dtype=float)
+        for i in range(N):
+            mat[i, i] = 0.0
+        for _, row in df.iterrows():
+            a = int(row['from']) - 1
+            b = int(row['to']) - 1
+            cost = float(row['cost'])
+            if 0 <= a < N and 0 <= b < N:
+                mat[a, b] = cost
+                mat[b, a] = cost
+        # compute shortest paths
+        from scipy.sparse import csr_matrix
+        from scipy.sparse.csgraph import shortest_path
+        dist = shortest_path(csgraph=csr_matrix(mat), directed=False, unweighted=False)
+        if save_dist:
+            os.makedirs(os.path.dirname(dist_path), exist_ok=True)
+            np.save(dist_path, dist)
+
     finite_dist = dist.reshape(-1)
     finite_dist = finite_dist[~np.isinf(finite_dist)]
     sigma = finite_dist.std()
