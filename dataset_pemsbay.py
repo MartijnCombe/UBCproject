@@ -8,8 +8,6 @@ from utils import get_randmask, get_block_mask
 
 import os
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-# explain the above line particularly hdg5 file locking issues on network file systems like NFS. and it is used in 
-# metrla and pemsbay dataset loading to avoid potential read/write conflicts. This setting can help prevent errors when multiple processes access the same HDF5 file.
 
 
 def sample_mask(shape, p=0.0015, p_noise=0.05, max_seq=1, min_seq=1, rng=None): 
