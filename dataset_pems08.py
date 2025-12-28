@@ -12,7 +12,7 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 def get_mean_std():
     arr = np.load("./data/pems08/PEMS08.npz")
     data = arr["data"]  # shape (T, N, F)
-    # use first feature (e.g., speed)
+    # use first feature
     data = data[..., 0]
     data_len = len(data)
     train_data = data[: int(data_len * 0.7)]
