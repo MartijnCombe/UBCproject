@@ -1,21 +1,54 @@
 import argparse
+import logging
 import torch
 import datetime
 import json
 import yaml
 import os
-import logging
 import numpy as np
 
-from dataset_aqi36 import get_dataloader
-from main_model import PriSTI_aqi36
+from dataset_pems08 import get_dataloader
+from main_model import PriSTI
 from utils import train, evaluate
 
 
-# -----------------------------------------------------------------------------------
-# FREEZING FUNCTIONS
-# -----------------------------------------------------------------------------------
+class PriSTI_Pems08(PriSTI):
+    def __init__(self, config, device, target_dim=170, seq_len=24):
+        super(PriSTI_Pems08, self).__init__(target_dim, seq_len, config, device)
+        self.config = config
 
+    def process_data(self, batch):
+        observed_data = batch["observed_data"].to(self.device).float()
+        observed_mask = batch["observed_mask"].to(self.device).float()
+        observed_tp = batch["timepoints"].to(self.device).float()
+        gt_mask = batch["gt_mask"].to(self.device).float()
+        cut_length = batch["cut_length"].to(self.device).long()
+        coeffs = None
+        if self.config['model']['use_guide']:
+            coeffs = batch["coeffs"].to(self.device).float()
+        cond_mask = batch["cond_mask"].to(self.device).float()
+
+        observed_data = observed_data.permute(0, 2, 1)  # [B, K, L]
+        observed_mask = observed_mask.permute(0, 2, 1)
+        gt_mask = gt_mask.permute(0, 2, 1)
+        cond_mask = cond_mask.permute(0, 2, 1)
+        for_pattern_mask = observed_mask
+
+        if self.config['model']['use_guide']:
+            coeffs = coeffs.permute(0, 2, 1)
+
+        return (
+            observed_data,
+            observed_mask,
+            observed_tp,
+            gt_mask,
+            for_pattern_mask,
+            cut_length,
+            coeffs,
+            cond_mask,
+        )
+
+#Freezing functions for transfer learning
 def freeze_early_diffusion_blocks(model, freeze_ratio=0.5):
     """Freeze first N% of NoiseProject layers in the diffusion model."""
     num_layers = len(model.diffmodel.residual_layers)
@@ -52,12 +85,7 @@ def apply_transfer_freezing(model, freeze_ratio=0.5):
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Trainable params: {trainable}/{total} ({100*trainable/total:.2f}%)")
-
-
-# -----------------------------------------------------------------------------------
-# MAIN APP CODE
-# -----------------------------------------------------------------------------------
-
+    
 def main(args):
     SEED = args.seed
     np.random.seed(SEED)
@@ -70,37 +98,36 @@ def main(args):
 
     config["model"]["is_unconditional"] = args.unconditional
     config["model"]["target_strategy"] = args.targetstrategy
-    config["diffusion"]["adj_file"] = 'AQI36'
+    # adjacency for PEMS08: compute/load PEMS08 distances
+    config["diffusion"]["adj_file"] = 'pems-08'
     config["seed"] = SEED
 
     print(json.dumps(config, indent=4))
 
     current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    foldername = "./save/pm25_outsample_" + current_time + "/"
+    foldername = (
+        "./save/pems08_" + args.missing_pattern + '_' + current_time + "/"
+    )
+
     print('model folder:', foldername)
     os.makedirs(foldername, exist_ok=True)
-
+    
     with open(foldername + "config.json", "w") as f:
         json.dump(config, f, indent=4)
 
+    # load data
     train_loader, valid_loader, test_loader, scaler, mean_scaler = get_dataloader(
-        config["train"]["batch_size"],
+        config["train"]["batch_size"], 
         device=args.device,
-        val_len=args.val_len,
-        is_interpolate=config["model"]["use_guide"],
-        num_workers=args.num_workers,
-        target_strategy=args.targetstrategy,
-        mask_sensor=config["model"]["mask_sensor"]
+        missing_pattern=args.missing_pattern,
+        is_interpolate=config["model"]["use_guide"], 
+        num_workers=args.num_workers, 
+        target_strategy=args.targetstrategy
     )
+    model = PriSTI_Pems08(config, args.device).to(args.device)
 
-    model = PriSTI_aqi36(config, args.device).to(args.device)
-
-
-    # --------------------------------------------------------------------------
-    # TRAIN OR LOAD MODEL
-    # --------------------------------------------------------------------------
-    if args.modelfolder == "":  
-        # FULL TRAINING (NO FREEZING)
+    if args.modelfolder == "":
+        #Full training, no transfer learning
         train(
             model,
             config["train"],
@@ -108,23 +135,16 @@ def main(args):
             valid_loader=valid_loader,
             foldername=foldername,
         )
-
     else:
-        # ------------------------------
-        # Load pre-trained weights
-        # ------------------------------
         print(f"Loading pretrained model from {args.modelfolder}...")
         model.load_state_dict(
             torch.load(f"./save/{args.modelfolder}/model.pth", map_location=args.device)
         )
-
-        # ------------------------------
-        # Apply transfer learning freezing
-        # ------------------------------
+        
         print("Applying freezing for transfer learning...")
         apply_transfer_freezing(model, freeze_ratio=0.5)
-
-        # Now run fine-tuning
+        
+        # Train the non-frozen parameters
         train(
             model,
             config["train"],
@@ -133,12 +153,9 @@ def main(args):
             foldername=foldername,
         )
 
-    # --------------------------------------------------------------------------
-    # EVALUATION
-    # --------------------------------------------------------------------------
+    # Evaluation
     logging.basicConfig(filename=foldername + '/test_model.log', level=logging.DEBUG)
     logging.info("model_name={}".format(args.modelfolder))
-
     evaluate(
         model,
         test_loader,
@@ -149,23 +166,21 @@ def main(args):
     )
 
 
-# -----------------------------------------------------------------------------------
-# ENTRY POINT
-# -----------------------------------------------------------------------------------
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="PriSTI")
-    parser.add_argument("--config", type=str, default="base.yaml")
-    parser.add_argument('--device', default='cuda:0')
-    parser.add_argument('--num_workers', type=int, default=16)
+    parser.add_argument("--config", type=str, default="traffic.yaml")
+    parser.add_argument('--device', default='cuda:0', help='Device for Attack')
+    parser.add_argument('--num_workers', type=int, default=4, help='Device for Attack')
     parser.add_argument("--modelfolder", type=str, default="")
-    parser.add_argument("--targetstrategy", type=str, default="hybrid",
-                        choices=["hybrid", "random", "historical"])
-    parser.add_argument("--val_len", type=float, default=0.1)
+    parser.add_argument(
+        "--targetstrategy", type=str, default="block", choices=["mix", "random", "block"]
+    )
     parser.add_argument("--nsample", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--unconditional", action="store_true")
+    parser.add_argument("--missing_pattern", type=str, default="block")     # block|point
 
     args = parser.parse_args()
     print(args)
+
     main(args)
