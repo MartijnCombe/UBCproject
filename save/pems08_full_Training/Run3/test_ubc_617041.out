@@ -1,0 +1,49 @@
+[/bin/bash] #### Starting UBC test
+[/bin/bash] CWD: /home/s2599406/UBC/ubc
+[/bin/bash] Using GPU: 0
+[/bin/bash] Path of python file: /home/s2599406/UBC/ubc
+[/bin/bash] Run script
+Namespace(config='traffic.yaml', device='cuda:0', num_workers=16, modelfolder='', targetstrategy='block', nsample=100, seed=42, unconditional=False, missing_pattern='block')
+{
+    "train": {
+        "epochs": 200,
+        "batch_size": 4,
+        "lr": 0.001,
+        "valid_epoch_interval": 20,
+        "is_lr_decay": true
+    },
+    "diffusion": {
+        "layers": 4,
+        "channels": 64,
+        "nheads": 8,
+        "diffusion_embedding_dim": 128,
+        "beta_start": 0.0001,
+        "beta_end": 0.2,
+        "num_steps": 50,
+        "schedule": "quad",
+        "is_adp": true,
+        "proj_t": 64,
+        "is_cross_t": true,
+        "is_cross_s": true,
+        "adj_file": "pems-08"
+    },
+    "model": {
+        "is_unconditional": false,
+        "timeemb": 128,
+        "featureemb": 16,
+        "target_strategy": "block",
+        "use_guide": true,
+        "mask_sensor": []
+    },
+    "seed": 42
+}
+model folder: ./save/pems08_block_20251231_123934/
+
+ best loss is updated to  0.16922804299328062 at 119
+
+ best loss is updated to  0.1658519377040755 at 159
+RMSE: 22.992224222329952
+MAE: 11.62094521294965
+CRPS: 0.03779450529500058
+[/bin/bash] Script finished
+[/bin/bash] #### Finished UBC test. Have a nice day
