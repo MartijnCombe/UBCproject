@@ -48,7 +48,7 @@ def get_similarity_AQI(dist, thr=0.1, include_self=False, force_symmetric=False,
     if sparse:
         import scipy.sparse as sps
         adj = sps.coo_matrix(adj)
-    return adj
+    return adj                         
 
 
 def get_adj_AQI36():
@@ -57,7 +57,7 @@ def get_adj_AQI36():
     res = geographical_distance(df, to_rad=False).values
     adj = get_similarity_AQI(res)
     return adj
-
+    
 
 def get_similarity_metrla(thr=0.1, force_symmetric=False, sparse=False):
     dist = np.load('./data/metr_la/metr_la_dist.npy')
@@ -74,10 +74,11 @@ def get_similarity_metrla(thr=0.1, force_symmetric=False, sparse=False):
     return adj
 
 
+
 def get_similarity_pemsbay(thr=0.1, force_symmetric=False, sparse=False):
     dist = np.load('./data/pems_bay/pems_bay_dist.npy')
     finite_dist = dist.reshape(-1)
-    finite_dist = finite_dist[~np.isinf(finite_dist)]
+    finite_dist = finite_dist[~np.isinf(finite_dist)] 
     sigma = finite_dist.std()
     adj = np.exp(-np.square(dist / sigma))
     adj[adj < thr] = 0.
@@ -91,12 +92,6 @@ def get_similarity_pemsbay(thr=0.1, force_symmetric=False, sparse=False):
 
 def get_similarity_pems08(thr=0.1, force_symmetric=False, sparse=False, save_dist=True):
     """Compute similarity adjacency for PEMS08 dataset.
-    - If './data/pems08/pems08_dist.npy' exists, load it.
-    - Otherwise compute all-pairs shortest path distances from the edge list in
-      './data/pems08/PEMS08.csv' (columns: from,to,cost) and save the distance matrix.
-
-    This version ensures the resulting distance matrix matches the node count found in
-    './data/pems08/PEMS08.npz' (if available) to avoid size mismatches with the data.
     """
     dist_path = './data/pems08/pems08_dist.npy'
     # determine desired node count from data (if possible)
@@ -159,6 +154,45 @@ def get_similarity_pems08(thr=0.1, force_symmetric=False, sparse=False, save_dis
     return adj
 
 
+def get_similarity_solar(
+    dist,
+    thr: float = 0.1,
+    include_self: bool = False,
+    force_symmetric: bool = False,
+    sparse: bool = False,
+):
+    if isinstance(dist, pd.DataFrame):
+        dist_np = dist.to_numpy(dtype=float)
+    else:
+        dist_np = np.asarray(dist, dtype=float)
+
+    finite = dist_np[np.isfinite(dist_np) & (dist_np > 0)]
+    theta = float(np.std(finite)) if finite.size else 1.0
+    if not np.isfinite(theta) or theta <= 0:
+        theta = 1.0
+
+    adj = thresholded_gaussian_kernel(dist_np, theta=theta, threshold=thr)
+
+    if not include_self:
+        np.fill_diagonal(adj, 0.0)
+    if force_symmetric:
+        adj = np.maximum(adj, adj.T)
+    if sparse:
+        import scipy.sparse as sps
+        adj = sps.coo_matrix(adj)
+
+    return adj.astype(np.float32)
+def get_adj_solar(npz_path: str = "./data/solar/data_&_nodeMetaData.npz", thr: float = 0.1):
+    data = np.load(npz_path, allow_pickle=True)
+    latlon = data["latlon"]      # (N,2) degrees
+    node_ids = data["node_ids"]  # (N,)
+
+    latlon_df = pd.DataFrame(latlon, index=node_ids, columns=["lat", "lon"])
+    dist_km = geographical_distance(latlon_df, to_rad=True)
+
+    adj = get_similarity_solar(dist_km, thr=thr, include_self=False, force_symmetric=True)
+
+    return adj
 # in Graph-wavenet
 def asym_adj(adj):
     adj = sp.coo_matrix(adj)
@@ -173,3 +207,5 @@ def compute_support_gwn(adj, device=None):
     adj_mx = [asym_adj(adj), asym_adj(np.transpose(adj))]
     support = [torch.tensor(i).to(device) for i in adj_mx]
     return support
+
+
