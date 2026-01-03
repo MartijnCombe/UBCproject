@@ -1,4 +1,5 @@
 from layers import *
+from generate_adj import get_adj_solar
 
 
 class Guide_diff(nn.Module):
@@ -30,6 +31,9 @@ class Guide_diff(nn.Module):
             self.adj = get_similarity_pems08(thr=0.1)
         elif config["adj_file"] == 'pems-bay':
             self.adj = get_similarity_pemsbay(thr=0.1)
+        elif config["adj_file"] in ('solar', 'solar-loc'):
+            # build solar adjacency from NPZ lat/lon metadata
+            self.adj = get_adj_solar()
         self.device = config["device"]
         self.support = compute_support_gwn(self.adj, device=config["device"])
         self.is_adp = config["is_adp"]

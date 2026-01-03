@@ -58,11 +58,11 @@ class Pems08_Dataset(Dataset):
             get_mean_std()
         with open(meanstd_path, "rb") as f:
             self.train_mean, self.train_std = pickle.load(f)
-
+        
         # create data for batch
         self.use_index = []
         self.cut_length = []
-
+        
         arr = np.load("./data/pems08/PEMS08.npz")
         data = arr["data"][..., 0]  # pick first feature -> shape (T, N)
         ob_mask = (data != 0.).astype('uint8')
@@ -154,3 +154,5 @@ def get_dataloader(batch_size, device, val_len=0.1, test_len=0.2, missing_patter
     mean_scaler = torch.from_numpy(dataset.train_mean).to(device).float()
 
     return train_loader, valid_loader, test_loader, scaler, mean_scaler
+
+
