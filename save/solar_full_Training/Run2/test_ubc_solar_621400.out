@@ -3,7 +3,7 @@
 [/bin/bash] Using GPU: 0
 [/bin/bash] Path of python file: /home/s2599406/UBC/ubc
 [/bin/bash] Run script
-Namespace(config='traffic.yaml', device='cuda:0', num_workers=16, modelfolder='', targetstrategy='block', nsample=100, seed=42, unconditional=False, missing_pattern='block')
+Namespace(config='traffic.yaml', device='cuda:0', num_workers=16, modelfolder='', targetstrategy='block', nsample=100, seed=42, unconditional=False, missing_pattern='block', npz_path='./data/solar/data_&_nodeMetaData.npz', eval_length=24, val_len=0.1, test_len=0.2)
 {
     "train": {
         "epochs": 200,
@@ -25,7 +25,7 @@ Namespace(config='traffic.yaml', device='cuda:0', num_workers=16, modelfolder=''
         "proj_t": 64,
         "is_cross_t": true,
         "is_cross_s": true,
-        "adj_file": "pems-08"
+        "adj_file": "solar"
     },
     "model": {
         "is_unconditional": false,
@@ -37,46 +37,44 @@ Namespace(config='traffic.yaml', device='cuda:0', num_workers=16, modelfolder=''
     },
     "seed": 42
 }
-model folder: ./save/pems08_block_20251231_123934/
+model folder: ./save/solar_block_20260105_111222/
+Apply full training, no transfer learning
 
- best loss is updated to  0.16922804299328062 at 119
+ best loss is updated to  0.07305070785718544 at 119
 
- best loss is updated to  0.1658519377040755 at 159
-RMSE: 22.992224222329952
-MAE: 11.62094521294965
-CRPS: 0.03779450529500058
+ best loss is updated to  0.07134021167582441 at 139
+
+ best loss is updated to  0.06644923756090558 at 159
+
+ best loss is updated to  0.06634193103516771 at 179
+
+ best loss is updated to  0.0658551020652195 at 199
+RMSE: 0.022283474377877015
+MAE: 0.008588334548667831
+CRPS: 0.05427942150517514
 [/bin/bash] Script finished
 [/bin/bash] #### Finished UBC test. Have a nice day
 
-
-ALICE HPC
-
-----
-
-JOB ID: 617041
-
-# SUMMARY
-
-JOB NAME: test_ubc
+JOB NAME: test_ubc_solar
 EXIT STATUS: COMPLETED
 
-SUMBITTED ON: 2025-12-31T12:39:30
-STARTED ON: 2025-12-31T12:39:31
-ENDED ON: 2026-01-01T02:28:41
-REAL ELAPSED TIME: 13:49:10
-CPU TIME: 9-05:06:40
+SUMBITTED ON: 2026-01-05T11:12:19
+STARTED ON: 2026-01-05T11:12:20
+ENDED ON: 2026-01-05T15:38:26
+REAL ELAPSED TIME: 04:26:06
+CPU TIME: 2-22:57:36
 
 PARTITION: gpu-l4-24g
-USED NODES: node881
+USED NODES: node884
 NUMBER OF ALLOCATED NODES: 1
 ALLOCATED RESOURCES: billing=19,cpu=16,gres/gpu:l4=1,gres/gpu=1,mem=5G,node=1
 
 # JOB STEP: batch
 (Resources used by batch commands)
 
-JOB AVERAGE CPU FREQUENCY: 6K
-JOB AVERAGE USED RAM: 3277156K
-JOB MAXIMUM USED RAM: 3277156K
+JOB AVERAGE CPU FREQUENCY: 15K
+JOB AVERAGE USED RAM: 2557500K
+JOB MAXIMUM USED RAM: 2557500K
 
 # JOB STEP: extern
 (Resources used by external commands (e.g., ssh))

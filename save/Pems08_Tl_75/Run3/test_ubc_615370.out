@@ -37,7 +37,7 @@ Namespace(config='traffic.yaml', device='cuda:0', num_workers=16, modelfolder='p
     },
     "seed": 42
 }
-model folder: ./save/pems08_block_20251230_105234/
+model folder: ./save/pems08_block_20251229_121652/
 Loading pretrained model from pems_bay...
 Loaded 211 layers
 Skipped 13 node-specific layers
@@ -45,15 +45,60 @@ Applying freezing for transfer learning...
 Freezing first 3/4 diffusion residual blocks
 Trainable params: 331370/838634 (39.51%)
 
- best loss is updated to  0.17676639033147806 at 119
+ best loss is updated to  0.17452945419990556 at 119
 
- best loss is updated to  0.1765068232877995 at 139
+ best loss is updated to  0.17382536319986222 at 139
 
- best loss is updated to  0.1722930504553983 at 159
+ best loss is updated to  0.17058773565184232 at 159
 
- best loss is updated to  0.17214103854026924 at 179
-RMSE: 22.515382698624432
-MAE: 12.034622933229025
-CRPS: 0.039053653415880706
+ best loss is updated to  0.1700811429189987 at 199
+RMSE: 22.46540406475059
+MAE: 12.170475207558074
+CRPS: 0.03964493462913915
 [/bin/bash] Script finished
 [/bin/bash] #### Finished UBC test. Have a nice day
+
+slurm@alice.leidenuniv.nl
+	
+di 30 dec 2025, 01:17 (8 dagen geleden)
+	
+	
+aan mij
+Zo te zien is dit bericht in het Engels
+Below you can find information about the performance of your job 615370.
+
+ALICE HPC
+
+----
+
+JOB ID: 615370
+
+# SUMMARY
+
+JOB NAME: test_ubc
+EXIT STATUS: COMPLETED
+
+SUMBITTED ON: 2025-12-29T12:16:46
+STARTED ON: 2025-12-29T12:16:47
+ENDED ON: 2025-12-30T01:16:48
+REAL ELAPSED TIME: 13:00:01
+CPU TIME: 8-16:00:16
+
+PARTITION: gpu-l4-24g
+USED NODES: node881
+NUMBER OF ALLOCATED NODES: 1
+ALLOCATED RESOURCES: billing=19,cpu=16,gres/gpu:l4=1,gres/gpu=1,mem=5G,node=1
+
+# JOB STEP: batch
+(Resources used by batch commands)
+
+JOB AVERAGE CPU FREQUENCY: 12K
+JOB AVERAGE USED RAM: 3338680K
+JOB MAXIMUM USED RAM: 3338680K
+
+# JOB STEP: extern
+(Resources used by external commands (e.g., ssh))
+
+JOB AVERAGE CPU FREQUENCY: 2.45G
+JOB AVERAGE USED RAM: 0
+JOB MAXIMUM USED RAM: 0

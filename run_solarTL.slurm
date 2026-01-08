@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=test_ubc
+#SBATCH --job-name=test_ubc_solar
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="martijncombe@gmail.com"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=5G
-#SBATCH --time=02:00:00
+#SBATCH --time=20:00:00
 #SBATCH --partition=gpu-l4-24g
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
@@ -23,11 +23,11 @@ export PATH_TO_PYFILE=$CWD
 echo "[$SHELL] Path of python file: "$PATH_TO_PYFILE
 
 # Set name of the python file
-export PYFILE=$CWD/exe_pems08.py
+export PYFILE=$CWD/exe_solar_TL.py
 
 # Run the file
 echo "[$SHELL] Run script"
-python exe_pems08.py --device 'cuda:0' --num_workers 16
+python exe_solar_TL.py --device 'cuda:0' --num_workers 16 --modelfolder 'aqi36'
 echo "[$SHELL] Script finished"
 
 echo "[$SHELL] #### Finished UBC test. Have a nice day"

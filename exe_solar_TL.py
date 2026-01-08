@@ -48,6 +48,62 @@ class PriSTI_Solar(PriSTI):
             cond_mask,
         )
 
+def load_pretrained_except_nodes(model, checkpoint_path, device):
+    ckpt = torch.load(checkpoint_path, map_location=device)
+    model_dict = model.state_dict()
+
+    filtered_ckpt = {}
+    skipped = []
+
+    for k, v in ckpt.items():
+        if k in model_dict and model_dict[k].shape == v.shape:
+            filtered_ckpt[k] = v
+        else:
+            skipped.append(k)
+
+    model_dict.update(filtered_ckpt)
+    model.load_state_dict(model_dict)
+
+    print(f"Loaded {len(filtered_ckpt)} layers")
+    print(f"Skipped {len(skipped)} node-specific layers")
+    
+    
+def freeze_early_diffusion_blocks(model, freeze_ratio=0.5):
+    #Freeze first N% of NoiseProject layers in the diffusion model
+    num_layers = len(model.diffmodel.residual_layers)
+    freeze_upto = int(num_layers * freeze_ratio)
+
+    print(f"Freezing first {freeze_upto}/{num_layers} diffusion residual blocks")
+
+    for i in range(freeze_upto):
+        for p in model.diffmodel.residual_layers[i].parameters():
+            p.requires_grad = False
+
+
+def unfreeze_embeddings(model):
+    #Ensure embeddings trainable (sensor/node embeddings)
+    for p in model.embed_layer.parameters():
+        p.requires_grad = True
+
+
+def unfreeze_output_head(model):
+    #Ensure the model’s output projections always train when fine-tuning
+    for p in model.diffmodel.output_projection1.parameters():
+        p.requires_grad = True
+    for p in model.diffmodel.output_projection2.parameters():
+        p.requires_grad = True
+
+
+def apply_transfer_freezing(model, freeze_ratio=0.5):
+    #Main function to apply all freezing/unfreezing rules
+    unfreeze_embeddings(model)
+    freeze_early_diffusion_blocks(model, freeze_ratio)
+    unfreeze_output_head(model)
+
+    # Print stats
+    total = sum(p.numel() for p in model.parameters())
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Trainable params: {trainable}/{total} ({100*trainable/total:.2f}%)")
 
 def main(args):
     SEED = args.seed
@@ -103,6 +159,7 @@ def main(args):
     model = PriSTI_Solar(config, args.device, target_dim=target_dim, seq_len=args.eval_length).to(args.device)
 
     if args.modelfolder == "":
+        print("Apply full training, no transfer learning")
         train(
             model,
             config["train"],
@@ -110,8 +167,25 @@ def main(args):
             valid_loader=valid_loader,
             foldername=foldername,
         )
+        
     else:
-        model.load_state_dict(torch.load("./save/" + args.modelfolder + "/model.pth"))
+        print(f"Loading pretrained model from {args.modelfolder}...")
+        load_pretrained_except_nodes(
+            model,
+            f"./save/{args.modelfolder}/model.pth",
+            args.device
+        )
+        print("Applying freezing for transfer learning...")
+        apply_transfer_freezing(model, freeze_ratio=0.5)
+        
+        # Train the non-frozen parameters
+        train(
+            model,
+            config["train"],
+            train_loader,
+            valid_loader=valid_loader,
+            foldername=foldername,
+        )
 
     logging.basicConfig(filename=foldername + '/test_model.log', level=logging.DEBUG)
     logging.info("model_name={}".format(args.modelfolder))
@@ -123,7 +197,6 @@ def main(args):
         mean_scaler=mean_scaler,
         foldername=foldername,
     )
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="PriSTI - Solar")

@@ -45,7 +45,7 @@ def get_solar_mean_std(npz_path: str, out_path: str, train_ratio: float = 0.7):
         pickle.dump((mean.astype(np.float32), std.astype(np.float32)), f)
 
 
-def sample_mask(shape, p=0.0015, p_noise=0.05, max_seq=1, min_seq=1, rng=None):
+def sample_mask(shape, p=0.0015, p_noise=0.05, max_seq=1, min_seq=1, rng=None): 
     
     if rng is None:
         rand = np.random.random

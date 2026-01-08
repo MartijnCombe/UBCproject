@@ -71,7 +71,7 @@ def load_pretrained_except_nodes(model, checkpoint_path, device):
     
     
 def freeze_early_diffusion_blocks(model, freeze_ratio=0.5):
-    """Freeze first N% of NoiseProject layers in the diffusion model."""
+    #Freeze first N% of NoiseProject layers in the diffusion model
     num_layers = len(model.diffmodel.residual_layers)
     freeze_upto = int(num_layers * freeze_ratio)
 
@@ -83,13 +83,12 @@ def freeze_early_diffusion_blocks(model, freeze_ratio=0.5):
 
 
 def unfreeze_embeddings(model):
-    """Ensure embeddings trainable (sensor/node embeddings)."""
+    #Ensure embeddings trainable (sensor/node embeddings)
     for p in model.embed_layer.parameters():
         p.requires_grad = True
 
-
 def unfreeze_output_head(model):
-    """Ensure the model’s output projections always train when fine-tuning."""
+    #Ensure the model’s output projections always train when fine-tuning
     for p in model.diffmodel.output_projection1.parameters():
         p.requires_grad = True
     for p in model.diffmodel.output_projection2.parameters():
@@ -97,7 +96,7 @@ def unfreeze_output_head(model):
 
 
 def apply_transfer_freezing(model, freeze_ratio=0.75):
-    """Main function to apply all freezing/unfreezing rules."""
+    #Main function to apply all freezing/unfreezing rules
     unfreeze_embeddings(model)
     freeze_early_diffusion_blocks(model, freeze_ratio)
     unfreeze_output_head(model)
