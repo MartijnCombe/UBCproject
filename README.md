@@ -28,6 +28,8 @@ python exe_pemsbay.py --device 'cuda:0' --num_workers 16 --modelfolder 'pems_bay
 python exe_pems08_TL.py --device 'cuda:0' --num_workers 16 --modelfolder 'pems_bay'
 python exe_solar_TL.py --device 'cuda:0' --num_workers 16 --modelfolder 'aqi36'
 
+All trained models of the transfer learning experiments are stored in their respective folders in the save folder. Plots can be recreated using the plot_combined.py and plot_runs.py files. However, they do require .pk files resulting from inference of any of the Pristi models. This can be done using the provided pretrained model. 
+
 ## Citation of the original work
 
 ```bibtex
