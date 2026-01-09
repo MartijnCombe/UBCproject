@@ -1,4 +1,7 @@
 # Applying Transfer Learning to PriSTI for Spatiotemporal Imputation on new Data
+Martijn Combé, and Sisay Ketema
+This work was created as part of the Urban Computing course of Leiden University.
+We build upon the work of PriSTI to implement Transfer Learning, by partially freezing NoiseProject Modules. Note that we take no credit for the original work, or any of its contents. (see citation section) 
 
 ## Requirement
 Create a conda or python environment
